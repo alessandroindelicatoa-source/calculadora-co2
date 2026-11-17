@@ -1,0 +1,383 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Plane vs Train or Boat: CO₂ and Trees Calculator</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Fraunces:opsz,wght@9..144,600&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#f6f4ee;--card:#fff;--ink:#1d2a22;--mute:#5e6b63;--line:#e3e0d6;--plane:#c8553d;--train:#2f7d5b;--tree:#4f8a2e;--accent:#1f5f45}
+*{box-sizing:border-box}
+body{margin:0;font-family:Inter,system-ui,sans-serif;background:var(--bg);color:var(--ink);line-height:1.45}
+.wrap{max-width:1080px;margin:0 auto;padding:28px 18px 60px}
+h1{font-family:Fraunces,serif;font-size:30px;margin:0 0 4px}
+.sub{color:var(--mute);margin:0 0 22px;max-width:720px}
+.grid{display:grid;grid-template-columns:360px 1fr;gap:20px}
+@media(max-width:860px){.grid{grid-template-columns:1fr}}
+.card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:18px}
+h2{font-size:14px;text-transform:uppercase;letter-spacing:.06em;color:var(--mute);margin:0 0 12px}
+label{display:block;font-size:13px;font-weight:500;margin:12px 0 4px}
+.hint{font-weight:400;color:var(--mute);font-size:12px}
+input,select{width:100%;padding:8px 10px;border:1px solid var(--line);border-radius:8px;font:inherit;background:#fcfbf8}
+input:focus,select:focus{outline:2px solid #9cc9b3;border-color:transparent}
+.row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.toggle{display:flex;gap:6px;margin-top:4px}
+.toggle button{flex:1;padding:7px;border:1px solid var(--line);background:#fcfbf8;border-radius:8px;font:inherit;font-size:13px;cursor:pointer}
+.toggle button.on{background:var(--accent);color:#fff;border-color:var(--accent)}
+details{margin-top:14px;border-top:1px solid var(--line);padding-top:10px}
+summary{cursor:pointer;font-size:13px;font-weight:600;color:var(--accent)}
+.kpis{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:16px}
+@media(max-width:600px){.kpis{grid-template-columns:1fr}}
+.kpi{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px 16px}
+.kpi .l{font-size:12px;color:var(--mute)}
+.kpi .v{font-size:28px;font-weight:700;margin-top:2px}
+.kpi .s{font-size:12px;color:var(--mute)}
+.bars{margin:6px 0 4px}
+.bar{display:grid;grid-template-columns:70px 1fr 90px;align-items:center;gap:10px;margin:8px 0;font-size:13px}
+.track{background:#f0ede4;border-radius:6px;height:22px;overflow:hidden}
+.fill{height:100%;border-radius:6px;transition:width .3s}
+.num{text-align:right;font-variant-numeric:tabular-nums;font-weight:600}
+.trees{display:flex;flex-wrap:wrap;gap:2px;margin:10px 0 4px;min-height:20px}
+.trees span{font-size:16px;line-height:1}
+.sect{margin-top:16px}
+p.explain{font-size:14px;margin:8px 0}
+.note{font-size:12.5px;color:var(--mute);background:#f8f6ef;border-left:3px solid #d8c98f;padding:8px 12px;border-radius:0 8px 8px 0;margin-top:10px}
+.big{font-size:15px}
+.sources{font-size:12.5px;color:var(--mute)}
+.sources a{color:var(--accent)}
+b.b{color:#2b6c99} b.p{color:var(--plane)} b.t{color:var(--train)} b.g{color:var(--tree)}
+</style>
+</head>
+<body>
+<div class="wrap">
+<h1>Plane vs train or boat: CO₂ and trees</h1>
+<p class="sub">How much CO₂ you avoid by taking the train or the boat instead of flying, what that means in trees, and how many trees your plane-ticket taxes could plant if they were spent on reforestation.</p>
+
+<div class="grid">
+<div class="card">
+<h2>Your trip</h2>
+<div class="row">
+<div><label>From</label><input id="from" list="cities" value="Vigo" autocomplete="off" placeholder="Type a city…"></div>
+<div><label>To</label><input id="to" list="cities" value="Madrid" autocomplete="off" placeholder="Type a city…"></div>
+<datalist id="cities"></datalist>
+</div>
+<div id="noRail" class="note" style="display:none;margin-top:8px">No realistic rail connection for this route (sea or ocean in between), so the comparison switches to boat. Long ocean crossings have no regular passenger ferries either.</div>
+<p class="hint" style="margin:6px 0 0">Type to search about 150 cities worldwide. Distances are filled in automatically. Flight = straight-line distance; rail = straight line × detour factor (see Assumptions). You can overwrite both.</p>
+<div class="row">
+<div><label>Flight distance (km)</label><input id="dPlane" type="number" min="0" value="470"></div>
+<div><label>Rail distance (km)</label><input id="dTrain" type="number" min="0" value="500"></div>
+</div>
+<label>Boat distance (km)</label><input id="dBoat" type="number" min="0" value="540">
+<label>Compare the plane with</label>
+<div class="toggle" id="alt"><button data-v="train" class="on">🚆 Train</button><button data-v="boat">⛴️ Boat</button></div>
+<label>Journey</label>
+<div class="toggle" id="rt"><button data-v="1">One way</button><button data-v="2" class="on">Round trip</button></div>
+<div class="row">
+<div><label>Travellers</label><input id="pax" type="number" min="1" value="1"></div>
+<div><label>Trips per year</label><input id="trips" type="number" min="1" value="4"></div>
+</div>
+
+<h2 style="margin-top:20px">Ticket taxes</h2>
+<label>Tax per flight ticket, one way (€) <span class="hint">Spain: Aena airport charges average ≈ €11 per passenger (2026); see "taxes and fees" when you book</span></label>
+<input id="tax" type="number" min="0" step="0.5" value="11">
+<label>Cost to plant one tree (€) <span class="hint">≈ $1 (One Tree Planted) to $1.50–3 (The Nature Conservancy)</span></label>
+<input id="treeCost" type="number" min="0.1" step="0.5" value="2">
+
+<details>
+<summary>Assumptions (emission factors, tree uptake)</summary>
+<label>Plane emission factor</label>
+<select id="fPlaneSel">
+<option value="0.251">Short-haul &lt;700 km: 251 g CO₂/pkm (UK gov. via Robeco)</option>
+<option value="0.233" selected>EU aviation average: 233 g CO₂e/pkm (EEA)</option>
+<option value="0.123">IEA lifecycle: 123 g CO₂e/pkm (used by Google)</option>
+<option value="custom">Custom…</option>
+</select>
+<input id="fPlane" type="number" step="0.001" value="0.233" style="margin-top:6px">
+<label>Train emission factor</label>
+<select id="fTrainSel">
+<option value="0.033" selected>EU rail average: 33 g CO₂e/pkm (EEA)</option>
+<option value="0.022">Spanish AVE: ~22 g/pkm (14 kg Madrid–Barcelona)</option>
+<option value="0.019">IEA lifecycle: 19 g CO₂e/pkm</option>
+<option value="custom">Custom…</option>
+</select>
+<input id="fTrain" type="number" step="0.001" value="0.033" style="margin-top:6px">
+<div class="row">
+<div><label>CO₂ per tree per year (kg)</label><input id="treeKg" type="number" min="1" value="22"></div>
+<div><label>Tree horizon (years)</label><input id="horizon" type="number" min="1" value="20"></div>
+</div>
+<label>Boat emission factor</label>
+<select id="fBoatSel">
+<option value="0.019">Ferry, foot passenger: ~19 g/pkm (DEFRA, derived)</option>
+<option value="0.113" selected>Ferry, average passenger: 113 g/pkm (DEFRA 2025)</option>
+<option value="0.129">Ferry, passenger with car: ~129 g/pkm (DEFRA, derived)</option>
+<option value="custom">Custom…</option>
+</select>
+<input id="fBoat" type="number" step="0.001" value="0.113" style="margin-top:6px">
+<label>Sea route factor <span class="hint">boat km ÷ straight-line km</span></label>
+<input id="seaDetour" type="number" min="1" step="0.05" value="1.15">
+<label>Rail detour factor <span class="hint">rail km ÷ straight-line km</span></label>
+<input id="detour" type="number" min="1" step="0.05" value="1.25">
+</details>
+</div>
+
+<div>
+<div class="kpis">
+<div class="kpi"><div class="l" id="kSavedL">CO₂ saved per year by train</div><div class="v" id="kSaved" style="color:var(--train)">–</div><div class="s" id="kPct"></div></div>
+<div class="kpi"><div class="l">Tree-years of absorption saved</div><div class="v" id="kTreeYears" style="color:var(--tree)">–</div><div class="s">one tree absorbing for one year</div></div>
+<div class="kpi"><div class="l">Trees your ticket taxes could plant</div><div class="v" id="kTaxTrees" style="color:var(--plane)">–</div><div class="s" id="kTaxEur"></div></div>
+</div>
+
+<div class="card">
+<h2>Emissions per year</h2>
+<div class="bars">
+<div class="bar"><span>✈️ Plane</span><div class="track"><div class="fill" id="bP" style="background:var(--plane)"></div></div><span class="num" id="nP"></span></div>
+<div class="bar"><span>🚆 Train</span><div class="track"><div class="fill" id="bT" style="background:var(--train)"></div></div><span class="num" id="nT"></span></div>
+<div class="bar"><span>⛴️ Boat</span><div class="track"><div class="fill" id="bB" style="background:#2b6c99"></div></div><span class="num" id="nB"></span></div>
+</div>
+<p class="explain big" id="txtSave"></p>
+
+<div class="sect">
+<h2>The savings in trees</h2>
+<p class="explain" id="txtTrees"></p>
+<div class="trees" id="treeIcons"></div>
+<p class="explain" id="txtTreesH"></p>
+</div>
+
+<div class="sect">
+<h2>Your ticket taxes in trees</h2>
+<p class="explain" id="txtTax"></p>
+<p class="explain" id="txtTaxCover"></p>
+<div class="note">Most aviation ticket taxes go into the general state budget and are not earmarked for planting trees. This section is a "what if": it shows what the same money would buy if it went to reforestation. Planted trees also absorb slowly, close to nothing in their first years, so they repay a flight over decades, not on the day you fly.</div>
+</div>
+</div>
+
+<div class="card sect sources">
+<h2>Sources for the defaults</h2>
+EEA averages (233 g aviation, 33 g rail) as reported by <a href="https://airportfyi.com/guides/sustainable-aviation/train-vs-plane/">AirportFYI</a> · IEA lifecycle factors (123 g plane, 19 g train) from <a href="https://support.google.com/travel/answer/13571996?hl=en-DE">Google Travel help</a> · Ferry 113 g/pkm average passenger from the UK government 2025 conversion factors via <a href="https://www.climatiq.io/data/emission-factor/d7002580-6833-4e06-af40-efb51af8d187">Climatiq</a>; foot-passenger and with-car values derived from the same set · Short-haul 251 g/km from <a href="https://robeco.com/en-ch/insights/2020/02/short-haul-flights-are-the-worst-offenders-for-co">Robeco</a> (UK government figures) · AVE Madrid–Barcelona 14 kg vs 70 kg by plane from <a href="https://www.autoblog.com/2007/12/21/study-shows-high-speed-trains-emit-less-carbon-than-planes/">Autoblog</a> · 22 kg CO₂/tree/year (Arbor Day Foundation/USDA) via <a href="https://sparkcalc.pages.dev/tree-carbon-offset-calculator">SparkCalc</a>; typical range 10–40 kg per <a href="https://www.evertreen.com/news/how-much-co2-does-a-tree-absorb">Evertreen</a>. Route distances are approximate. Aena 2026 average charge per passenger (€11.02) from the <a href="https://www.cnmc.es/en/node/417206">CNMC</a>; tree planting cost from <a href="https://onetreeplanted.org/blogs/stories/still-one-dollar">One Tree Planted</a> and <a href="https://nature.org/plantabillion">The Nature Conservancy</a>.
+</div>
+</div>
+</div>
+</div>
+
+<script>
+const $=id=>document.getElementById(id);
+let rt=2;
+const fmtKg=kg=>kg>=1000?(kg/1000).toLocaleString('en',{maximumFractionDigits:2})+' t':Math.round(kg).toLocaleString('en')+' kg';
+const n=(x,d=0)=>x.toLocaleString('en',{maximumFractionDigits:d});
+function syncSel(sel,inp){$(sel).addEventListener('change',e=>{if(e.target.value!=='custom'){$(inp).value=e.target.value}calc()});$(inp).addEventListener('input',()=>{$(sel).value='custom';calc()})}
+syncSel('fPlaneSel','fPlane');syncSel('fTrainSel','fTrain');syncSel('fBoatSel','fBoat');
+let alt='train',altTouched=false;
+function setAlt(m){alt=m;document.querySelectorAll('#alt button').forEach(x=>x.classList.toggle('on',x.dataset.v===m))}
+document.querySelectorAll('#alt button').forEach(b=>b.addEventListener('click',()=>{altTouched=true;setAlt(b.dataset.v);calc()}));
+const CITIES={};
+CITIES['Vigo']=[42.24,-8.72,'EA','Europe'];
+CITIES['A Coruña']=[43.37,-8.40,'EA','Europe'];
+CITIES['Santiago de Compostela']=[42.88,-8.54,'EA','Europe'];
+CITIES['Ourense']=[42.34,-7.86,'EA','Europe'];
+CITIES['Oviedo']=[43.36,-5.85,'EA','Europe'];
+CITIES['Santander']=[43.46,-3.81,'EA','Europe'];
+CITIES['Bilbao']=[43.26,-2.93,'EA','Europe'];
+CITIES['San Sebastián']=[43.32,-1.98,'EA','Europe'];
+CITIES['León']=[42.60,-5.57,'EA','Europe'];
+CITIES['Valladolid']=[41.65,-4.72,'EA','Europe'];
+CITIES['Salamanca']=[40.97,-5.66,'EA','Europe'];
+CITIES['Madrid']=[40.42,-3.70,'EA','Europe'];
+CITIES['Zaragoza']=[41.65,-0.88,'EA','Europe'];
+CITIES['Barcelona']=[41.39,2.17,'EA','Europe'];
+CITIES['Valencia']=[39.47,-0.38,'EA','Europe'];
+CITIES['Alicante']=[38.35,-0.48,'EA','Europe'];
+CITIES['Murcia']=[37.99,-1.13,'EA','Europe'];
+CITIES['Badajoz']=[38.88,-6.97,'EA','Europe'];
+CITIES['Córdoba']=[37.89,-4.78,'EA','Europe'];
+CITIES['Sevilla']=[37.39,-5.98,'EA','Europe'];
+CITIES['Granada']=[37.18,-3.60,'EA','Europe'];
+CITIES['Málaga']=[36.72,-4.42,'EA','Europe'];
+CITIES['Cádiz']=[36.53,-6.29,'EA','Europe'];
+CITIES['Lisbon']=[38.72,-9.14,'EA','Europe'];
+CITIES['Porto']=[41.15,-8.61,'EA','Europe'];
+CITIES['Faro']=[37.02,-7.93,'EA','Europe'];
+CITIES['Paris']=[48.86,2.35,'EA','Europe'];
+CITIES['Lyon']=[45.76,4.84,'EA','Europe'];
+CITIES['Marseille']=[43.30,5.37,'EA','Europe'];
+CITIES['Nice']=[43.70,7.27,'EA','Europe'];
+CITIES['Toulouse']=[43.60,1.44,'EA','Europe'];
+CITIES['Bordeaux']=[44.84,-0.58,'EA','Europe'];
+CITIES['Nantes']=[47.22,-1.55,'EA','Europe'];
+CITIES['Strasbourg']=[48.57,7.75,'EA','Europe'];
+CITIES['London']=[51.51,-0.13,'EA','Europe'];
+CITIES['Manchester']=[53.48,-2.24,'EA','Europe'];
+CITIES['Edinburgh']=[55.95,-3.19,'EA','Europe'];
+CITIES['Brussels']=[50.85,4.35,'EA','Europe'];
+CITIES['Amsterdam']=[52.37,4.90,'EA','Europe'];
+CITIES['Luxembourg']=[49.61,6.13,'EA','Europe'];
+CITIES['Frankfurt']=[50.11,8.68,'EA','Europe'];
+CITIES['Berlin']=[52.52,13.40,'EA','Europe'];
+CITIES['Munich']=[48.14,11.58,'EA','Europe'];
+CITIES['Hamburg']=[53.55,9.99,'EA','Europe'];
+CITIES['Cologne']=[50.94,6.96,'EA','Europe'];
+CITIES['Zurich']=[47.38,8.54,'EA','Europe'];
+CITIES['Geneva']=[46.20,6.14,'EA','Europe'];
+CITIES['Vienna']=[48.21,16.37,'EA','Europe'];
+CITIES['Prague']=[50.08,14.44,'EA','Europe'];
+CITIES['Budapest']=[47.50,19.04,'EA','Europe'];
+CITIES['Warsaw']=[52.23,21.01,'EA','Europe'];
+CITIES['Kraków']=[50.06,19.94,'EA','Europe'];
+CITIES['Copenhagen']=[55.68,12.57,'EA','Europe'];
+CITIES['Stockholm']=[59.33,18.07,'EA','Europe'];
+CITIES['Oslo']=[59.91,10.75,'EA','Europe'];
+CITIES['Helsinki']=[60.17,24.94,'EA','Europe'];
+CITIES['Vilnius']=[54.69,25.28,'EA','Europe'];
+CITIES['Kaunas']=[54.90,23.90,'EA','Europe'];
+CITIES['Riga']=[56.95,24.11,'EA','Europe'];
+CITIES['Tallinn']=[59.44,24.75,'EA','Europe'];
+CITIES['Milan']=[45.46,9.19,'EA','Europe'];
+CITIES['Turin']=[45.07,7.69,'EA','Europe'];
+CITIES['Venice']=[45.44,12.32,'EA','Europe'];
+CITIES['Bologna']=[44.49,11.34,'EA','Europe'];
+CITIES['Florence']=[43.77,11.26,'EA','Europe'];
+CITIES['Rome']=[41.90,12.50,'EA','Europe'];
+CITIES['Naples']=[40.85,14.27,'EA','Europe'];
+CITIES['Bari']=[41.12,16.87,'EA','Europe'];
+CITIES['Palermo']=[38.12,13.36,'EA','Europe'];
+CITIES['Ljubljana']=[46.06,14.51,'EA','Europe'];
+CITIES['Zagreb']=[45.81,15.98,'EA','Europe'];
+CITIES['Belgrade']=[44.79,20.45,'EA','Europe'];
+CITIES['Bucharest']=[44.43,26.10,'EA','Europe'];
+CITIES['Sofia']=[42.70,23.32,'EA','Europe'];
+CITIES['Athens']=[37.98,23.73,'EA','Europe'];
+CITIES['Thessaloniki']=[40.64,22.94,'EA','Europe'];
+CITIES['Istanbul']=[41.01,28.98,'EA','Europe'];
+CITIES['Kyiv']=[50.45,30.52,'EA','Europe'];
+CITIES['Moscow']=[55.76,37.62,'EA','Europe'];
+CITIES['Las Palmas de Gran Canaria']=[28.12,-15.43,'IC1','Islands'];
+CITIES['Santa Cruz de Tenerife']=[28.46,-16.25,'IC2','Islands'];
+CITIES['Palma de Mallorca']=[39.57,2.65,'BA1','Islands'];
+CITIES['Ibiza']=[38.91,1.43,'BA2','Islands'];
+CITIES['Menorca (Mahón)']=[39.89,4.26,'BA3','Islands'];
+CITIES['Funchal (Madeira)']=[32.65,-16.91,'MAD','Islands'];
+CITIES['Ponta Delgada (Azores)']=[37.74,-25.67,'AZO','Islands'];
+CITIES['Dublin']=[53.35,-6.26,'IE','Islands'];
+CITIES['Reykjavík']=[64.15,-21.94,'IS','Islands'];
+CITIES['Cagliari']=[39.22,9.12,'SAR','Islands'];
+CITIES['Catania']=[37.50,15.09,'EA','Islands'];
+CITIES['Malta (Valletta)']=[35.90,14.51,'MT','Islands'];
+CITIES['Heraklion (Crete)']=[35.34,25.13,'CRE','Islands'];
+CITIES['Nicosia']=[35.19,33.38,'CY','Islands'];
+CITIES['Marrakesh']=[31.63,-7.99,'AF','Africa'];
+CITIES['Casablanca']=[33.57,-7.59,'AF','Africa'];
+CITIES['Rabat']=[34.02,-6.84,'AF','Africa'];
+CITIES['Tangier']=[35.76,-5.83,'AF','Africa'];
+CITIES['Algiers']=[36.75,3.06,'AF','Africa'];
+CITIES['Tunis']=[36.81,10.18,'AF','Africa'];
+CITIES['Cairo']=[30.04,31.24,'AF','Africa'];
+CITIES['Dakar']=[14.72,-17.47,'AF','Africa'];
+CITIES['Abidjan']=[5.36,-4.01,'AF','Africa'];
+CITIES['Lagos']=[6.52,3.38,'AF','Africa'];
+CITIES['Accra']=[5.60,-0.19,'AF','Africa'];
+CITIES['Nairobi']=[-1.29,36.82,'AF','Africa'];
+CITIES['Addis Ababa']=[9.03,38.74,'AF','Africa'];
+CITIES['Johannesburg']=[-26.20,28.05,'AF','Africa'];
+CITIES['Cape Town']=[-33.92,18.42,'AF','Africa'];
+CITIES['Tel Aviv']=[32.09,34.78,'EA','Middle East & Asia'];
+CITIES['Amman']=[31.95,35.93,'EA','Middle East & Asia'];
+CITIES['Riyadh']=[24.71,46.68,'EA','Middle East & Asia'];
+CITIES['Dubai']=[25.20,55.27,'EA','Middle East & Asia'];
+CITIES['Doha']=[25.29,51.53,'EA','Middle East & Asia'];
+CITIES['Tehran']=[35.69,51.39,'EA','Middle East & Asia'];
+CITIES['Delhi']=[28.61,77.21,'EA','Middle East & Asia'];
+CITIES['Mumbai']=[19.08,72.88,'EA','Middle East & Asia'];
+CITIES['Bangalore']=[12.97,77.59,'EA','Middle East & Asia'];
+CITIES['Kolkata']=[22.57,88.36,'EA','Middle East & Asia'];
+CITIES['Beijing']=[39.90,116.40,'EA','Middle East & Asia'];
+CITIES['Shanghai']=[31.23,121.47,'EA','Middle East & Asia'];
+CITIES['Guangzhou']=[23.13,113.26,'EA','Middle East & Asia'];
+CITIES['Hong Kong']=[22.32,114.17,'EA','Middle East & Asia'];
+CITIES['Seoul']=[37.57,126.98,'EA','Middle East & Asia'];
+CITIES['Bangkok']=[13.76,100.50,'EA','Middle East & Asia'];
+CITIES['Hanoi']=[21.03,105.85,'EA','Middle East & Asia'];
+CITIES['Ho Chi Minh City']=[10.82,106.63,'EA','Middle East & Asia'];
+CITIES['Kuala Lumpur']=[3.14,101.69,'EA','Middle East & Asia'];
+CITIES['Singapore']=[1.35,103.82,'EA','Middle East & Asia'];
+CITIES['Almaty']=[43.24,76.89,'EA','Middle East & Asia'];
+CITIES['Tokyo']=[35.68,139.69,'JP','Asia (islands)'];
+CITIES['Osaka']=[34.69,135.50,'JP','Asia (islands)'];
+CITIES['Taipei']=[25.03,121.57,'TW','Asia (islands)'];
+CITIES['Manila']=[14.60,120.98,'PH','Asia (islands)'];
+CITIES['Jakarta']=[-6.21,106.85,'JV','Asia (islands)'];
+CITIES['Bali (Denpasar)']=[-8.65,115.22,'BALI','Asia (islands)'];
+CITIES['Colombo']=[6.93,79.86,'LK','Asia (islands)'];
+CITIES['New York']=[40.71,-74.01,'NA','North America'];
+CITIES['Boston']=[42.36,-71.06,'NA','North America'];
+CITIES['Washington DC']=[38.91,-77.04,'NA','North America'];
+CITIES['Chicago']=[41.88,-87.63,'NA','North America'];
+CITIES['Miami']=[25.76,-80.19,'NA','North America'];
+CITIES['Atlanta']=[33.75,-84.39,'NA','North America'];
+CITIES['Dallas']=[32.78,-96.80,'NA','North America'];
+CITIES['Los Angeles']=[34.05,-118.24,'NA','North America'];
+CITIES['San Francisco']=[37.77,-122.42,'NA','North America'];
+CITIES['Seattle']=[47.61,-122.33,'NA','North America'];
+CITIES['Toronto']=[43.65,-79.38,'NA','North America'];
+CITIES['Montreal']=[45.50,-73.57,'NA','North America'];
+CITIES['Vancouver']=[49.28,-123.12,'NA','North America'];
+CITIES['Mexico City']=[19.43,-99.13,'NA','North America'];
+CITIES['Cancún']=[21.16,-86.85,'NA','North America'];
+CITIES['Guatemala City']=[14.63,-90.51,'NA','North America'];
+CITIES['Panama City']=[8.98,-79.52,'NA','North America'];
+CITIES['Havana']=[23.11,-82.37,'CU','Caribbean'];
+CITIES['Santo Domingo']=[18.49,-69.93,'HISP','Caribbean'];
+CITIES['San Juan (Puerto Rico)']=[18.47,-66.11,'PR','Caribbean'];
+CITIES['Bogotá']=[4.71,-74.07,'SA','South America'];
+CITIES['Caracas']=[10.48,-66.90,'SA','South America'];
+CITIES['Quito']=[-0.18,-78.47,'SA','South America'];
+CITIES['Lima']=[-12.05,-77.04,'SA','South America'];
+CITIES['La Paz']=[-16.50,-68.15,'SA','South America'];
+CITIES['Santiago de Chile']=[-33.45,-70.67,'SA','South America'];
+CITIES['Buenos Aires']=[-34.60,-58.38,'SA','South America'];
+CITIES['Montevideo']=[-34.90,-56.16,'SA','South America'];
+CITIES['São Paulo']=[-23.55,-46.63,'SA','South America'];
+CITIES['Rio de Janeiro']=[-22.91,-43.17,'SA','South America'];
+CITIES['Sydney']=[-33.87,151.21,'AU','Oceania'];
+CITIES['Melbourne']=[-37.81,144.96,'AU','Oceania'];
+CITIES['Brisbane']=[-27.47,153.03,'AU','Oceania'];
+CITIES['Perth']=[-31.95,115.86,'AU','Oceania'];
+CITIES['Auckland']=[-36.85,174.76,'NZ','Oceania'];
+$('cities').innerHTML=Object.entries(CITIES).map(([c,v])=>`<option value="${c}">${v[3]}</option>`).join('');
+function hav(a,b){const R=6371,r=x=>x*Math.PI/180,dl=r(b[0]-a[0]),dn=r(b[1]-a[1]);const h=Math.sin(dl/2)**2+Math.cos(r(a[0]))*Math.cos(r(b[0]))*Math.sin(dn/2)**2;return 2*R*Math.asin(Math.sqrt(h))}
+function route(){const f=CITIES[$('from').value],t=CITIES[$('to').value];if(!f||!t)return;const d=hav(f,t);$('dPlane').value=Math.round(d);$('dTrain').value=Math.round(d*(parseFloat($('detour').value)||1.25));$('dBoat').value=Math.round(d*(parseFloat($('seaDetour').value)||1.15));const nr=f[2]!==t[2]&&d>0;$('noRail').style.display=nr?'block':'none';if(!altTouched)setAlt(nr?'boat':'train');calc()}
+['from','to'].forEach(id=>{$(id).addEventListener('change',route);$(id).addEventListener('input',route);$(id).addEventListener('focus',e=>e.target.select())});
+$('detour').addEventListener('input',route);$('seaDetour').addEventListener('input',route);
+document.querySelectorAll('#rt button').forEach(b=>b.addEventListener('click',()=>{rt=+b.dataset.v;document.querySelectorAll('#rt button').forEach(x=>x.classList.toggle('on',x===b));calc()}));
+['dPlane','dTrain','dBoat','pax','trips','tax','treeCost','treeKg','horizon'].forEach(id=>$(id).addEventListener('input',calc));
+function v(id){const x=parseFloat($(id).value);return isFinite(x)&&x>=0?x:0}
+function calc(){
+ const legs=rt*v('pax')*Math.max(1,v('trips'));
+ const plane=v('dPlane')*v('fPlane')*legs, trainE=v('dTrain')*v('fTrain')*legs, boat=v('dBoat')*v('fBoat')*legs;
+ const train=alt==='boat'?boat:trainE, AN=alt==='boat'?'boat':'train', cls=alt==='boat'?'b':'t';
+ const saved=Math.max(0,plane-train), pct=plane?saved/plane*100:0;
+ $('kSavedL').textContent='CO₂ saved per year by '+AN;
+ const tk=Math.max(1,v('treeKg')), H=Math.max(1,v('horizon'));
+ const treeYears=saved/tk, treesH=saved/(tk*H);
+ const taxEur=v('tax')*legs, taxTrees=v('treeCost')>0?taxEur/v('treeCost'):0;
+ const taxCO2=taxTrees*tk*H, cover=plane?taxCO2/plane*100:0;
+ $('kSaved').textContent=fmtKg(saved);
+ $('kPct').textContent=n(pct)+'% less than flying';
+ $('kTreeYears').textContent=n(treeYears);
+ $('kTaxTrees').textContent=n(taxTrees);
+ $('kTaxEur').textContent='€'+n(taxEur)+' in taxes on '+n(legs)+' flights';
+ const mx=Math.max(plane,trainE,boat,1);
+ $('bP').style.width=(plane/mx*100)+'%';$('bT').style.width=(trainE/mx*100)+'%';$('bB').style.width=(boat/mx*100)+'%';
+ $('nP').textContent=fmtKg(plane);$('nT').textContent=fmtKg(trainE);$('nB').textContent=fmtKg(boat);
+ $('txtSave').innerHTML=`${n(legs)} one-way journeys a year. Flying emits <b class="p">${fmtKg(plane)}</b> of CO₂; the ${AN} emits <b class="${cls}">${fmtKg(train)}</b>. ${saved>0?`Switching saves <b class="t">${fmtKg(saved)}</b> every year, ${n(plane&&train?plane/train:0,1)} times less.`:`On this route the ${AN} does <b>not</b> save CO₂ compared with flying.`}`;
+ $('txtTrees').innerHTML=`To absorb <b class="t">${fmtKg(saved)}</b>, you would need <b class="g">${n(treeYears)} trees</b> working for a full year (at ${tk} kg each).`;
+ const icons=Math.min(Math.round(treeYears),300);
+ $('treeIcons').innerHTML='<span>🌳</span>'.repeat(icons)+(treeYears>300?`<span style="font-size:12px;color:var(--mute);align-self:center">&nbsp;+${n(treeYears-300)} more</span>`:'');
+ $('txtTreesH').innerHTML=`Put differently: keeping up this habit is like having <b class="g">${n(treesH,1)} trees</b> growing for ${H} years for every single year you take the ${AN}. Over ${H} years of ${AN} travel, the savings add up to <b class="t">${fmtKg(saved*H)}</b>.`;
+ $('txtTax').innerHTML=`You pay about <b class="p">€${n(taxEur)}</b> a year in ticket taxes. At €${n(v('treeCost'),2)} per tree, that would plant <b class="g">${n(taxTrees)} trees</b>, which over ${H} years would absorb about <b class="g">${fmtKg(taxCO2)}</b>.`;
+ $('txtTaxCover').innerHTML=cover>=100
+  ?`That is enough to cover your yearly flight emissions about ${n(cover/100,1)} times over, but only after ${H} years of growth.`
+  :`That covers only <b>${n(cover)}%</b> of one year of flight emissions, even after ${H} years of growth. Not flying avoids the emissions on day one.`;
+}
+route();
+</script>
+</body>
+</html>
